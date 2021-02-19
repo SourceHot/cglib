@@ -17,33 +17,34 @@ package net.sf.cglib.core;
 
 import org.objectweb.asm.Label;
 
-public class Block
-{
-    private CodeEmitter e;
-    private Label start;
-    private Label end;
+public class Block {
+	private CodeEmitter e;
 
-    public Block(CodeEmitter e) {
-        this.e = e;
-        start = e.mark();
-    }
+	private Label start;
 
-    public CodeEmitter getCodeEmitter() {
-        return e;
-    }
+	private Label end;
 
-    public void end() {
-        if (end != null) {
-            throw new IllegalStateException("end of label already set");
-        }
-        end = e.mark();
-    }
-    
-    public Label getStart() {
-        return start;
-    }
+	public Block(CodeEmitter e) {
+		this.e = e;
+		start = e.mark();
+	}
 
-    public Label getEnd() {
-        return end;
-    }
+	public CodeEmitter getCodeEmitter() {
+		return e;
+	}
+
+	public void end() {
+		if (end != null) {
+			throw new IllegalStateException("end of label already set");
+		}
+		end = e.mark();
+	}
+
+	public Label getStart() {
+		return start;
+	}
+
+	public Label getEnd() {
+		return end;
+	}
 }

@@ -22,52 +22,53 @@ import org.objectweb.asm.Type;
  * return type, and parameter types.
  */
 public class Signature {
-    private String name;
-    private String desc;
+	private String name;
 
-    public Signature(String name, String desc) {
-        // TODO: better error checking
-        if (name.indexOf('(') >= 0) {
-            throw new IllegalArgumentException("Name '" + name + "' is invalid");
-        }
-        this.name = name;
-        this.desc = desc;
-    }
+	private String desc;
 
-    public Signature(String name, Type returnType, Type[] argumentTypes) {
-        this(name, Type.getMethodDescriptor(returnType, argumentTypes));
-    }
+	public Signature(String name, String desc) {
+		// TODO: better error checking
+		if (name.indexOf('(') >= 0) {
+			throw new IllegalArgumentException("Name '" + name + "' is invalid");
+		}
+		this.name = name;
+		this.desc = desc;
+	}
 
-    public String getName() {
-        return name;
-    }
+	public Signature(String name, Type returnType, Type[] argumentTypes) {
+		this(name, Type.getMethodDescriptor(returnType, argumentTypes));
+	}
 
-    public String getDescriptor() {
-        return desc;
-    }
+	public String getName() {
+		return name;
+	}
 
-    public Type getReturnType() {
-        return Type.getReturnType(desc);
-    }
+	public String getDescriptor() {
+		return desc;
+	}
 
-    public Type[] getArgumentTypes() {
-        return Type.getArgumentTypes(desc);
-    }
+	public Type getReturnType() {
+		return Type.getReturnType(desc);
+	}
 
-    public String toString() {
-        return name + desc;
-    }
+	public Type[] getArgumentTypes() {
+		return Type.getArgumentTypes(desc);
+	}
 
-    public boolean equals(Object o) {
-        if (o == null)
-            return false;
-        if (!(o instanceof Signature))
-            return false;
-        Signature other = (Signature)o;
-        return name.equals(other.name) && desc.equals(other.desc);
-    }
+	public String toString() {
+		return name + desc;
+	}
 
-    public int hashCode() {
-        return name.hashCode() ^ desc.hashCode();
-    }
+	public boolean equals(Object o) {
+		if (o == null)
+			return false;
+		if (!(o instanceof Signature))
+			return false;
+		Signature other = (Signature) o;
+		return name.equals(other.name) && desc.equals(other.desc);
+	}
+
+	public int hashCode() {
+		return name.hashCode() ^ desc.hashCode();
+	}
 }

@@ -15,29 +15,27 @@
  */
 package net.sf.cglib.beans;
 
-import net.sf.cglib.core.CodeGenerationException;
+public class BulkBeanException extends RuntimeException {
+	private int index;
 
-public class BulkBeanException extends RuntimeException
-{
-    private int index;
-    private Throwable cause;
-    
-    public BulkBeanException(String message, int index) {
-        super(message);
-        this.index = index;
-    }
+	private Throwable cause;
 
-    public BulkBeanException(Throwable cause, int index) {
-        super(cause.getMessage());
-        this.index = index;
-        this.cause = cause;
-    }
+	public BulkBeanException(String message, int index) {
+		super(message);
+		this.index = index;
+	}
 
-    public int getIndex() {
-        return index;
-    }
-    
-    public Throwable getCause() {
-        return cause;
-    }
+	public BulkBeanException(Throwable cause, int index) {
+		super(cause.getMessage());
+		this.index = index;
+		this.cause = cause;
+	}
+
+	public int getIndex() {
+		return index;
+	}
+
+	public Throwable getCause() {
+		return cause;
+	}
 }

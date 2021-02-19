@@ -15,9 +15,18 @@
  */
 package net.sf.cglib.reflect;
 
-import java.lang.reflect.*;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.security.ProtectionDomain;
-import net.sf.cglib.core.*;
+
+import net.sf.cglib.core.AbstractClassGenerator;
+import net.sf.cglib.core.ClassEmitter;
+import net.sf.cglib.core.CodeEmitter;
+import net.sf.cglib.core.Constants;
+import net.sf.cglib.core.EmitUtils;
+import net.sf.cglib.core.KeyFactory;
+import net.sf.cglib.core.ReflectUtils;
+import net.sf.cglib.core.TypeUtils;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Type;
 
@@ -26,98 +35,101 @@ import org.objectweb.asm.Type;
  * @version $Id: ConstructorDelegate.java,v 1.20 2006/03/05 02:43:19 herbyderby Exp $
  */
 abstract public class ConstructorDelegate {
-    private static final ConstructorKey KEY_FACTORY =
-      (ConstructorKey)KeyFactory.create(ConstructorKey.class, KeyFactory.CLASS_BY_NAME);
-    
-    interface ConstructorKey {
-        public Object newInstance(String declaring, String iface);
-    }
+	private static final ConstructorKey KEY_FACTORY =
+			(ConstructorKey) KeyFactory.create(ConstructorKey.class, KeyFactory.CLASS_BY_NAME);
 
-    protected ConstructorDelegate() {
-    }
+	protected ConstructorDelegate() {
+	}
 
-    public static ConstructorDelegate create(Class targetClass, Class iface) {
-        Generator gen = new Generator();
-        gen.setTargetClass(targetClass);
-        gen.setInterface(iface);
-        return gen.create();
-    }
+	public static ConstructorDelegate create(Class targetClass, Class iface) {
+		Generator gen = new Generator();
+		gen.setTargetClass(targetClass);
+		gen.setInterface(iface);
+		return gen.create();
+	}
 
-    public static class Generator extends AbstractClassGenerator {
-        private static final Source SOURCE = new Source(ConstructorDelegate.class.getName());
-        private static final Type CONSTRUCTOR_DELEGATE =
-          TypeUtils.parseType("net.sf.cglib.reflect.ConstructorDelegate");
+	interface ConstructorKey {
+		public Object newInstance(String declaring, String iface);
+	}
 
-        private Class iface;
-        private Class targetClass;
+	public static class Generator extends AbstractClassGenerator {
+		private static final Source SOURCE = new Source(ConstructorDelegate.class.getName());
 
-        public Generator() {
-            super(SOURCE);
-        }
+		private static final Type CONSTRUCTOR_DELEGATE =
+				TypeUtils.parseType("net.sf.cglib.reflect.ConstructorDelegate");
 
-        public void setInterface(Class iface) {
-            this.iface = iface;
-        }
+		private Class iface;
 
-        public void setTargetClass(Class targetClass) {
-            this.targetClass = targetClass;
-        }
+		private Class targetClass;
 
-        public ConstructorDelegate create() {
-            setNamePrefix(targetClass.getName());
-            Object key = KEY_FACTORY.newInstance(iface.getName(), targetClass.getName());
-            return (ConstructorDelegate)super.create(key);
-        }
+		public Generator() {
+			super(SOURCE);
+		}
 
-        protected ClassLoader getDefaultClassLoader() {
-            return targetClass.getClassLoader();
-        }
+		public void setInterface(Class iface) {
+			this.iface = iface;
+		}
 
-        protected ProtectionDomain getProtectionDomain() {
-        	return ReflectUtils.getProtectionDomain(targetClass);
-        }
+		public void setTargetClass(Class targetClass) {
+			this.targetClass = targetClass;
+		}
 
-        public void generateClass(ClassVisitor v) {
-            setNamePrefix(targetClass.getName());
+		public ConstructorDelegate create() {
+			setNamePrefix(targetClass.getName());
+			Object key = KEY_FACTORY.newInstance(iface.getName(), targetClass.getName());
+			return (ConstructorDelegate) super.create(key);
+		}
 
-            final Method newInstance = ReflectUtils.findNewInstance(iface);
-            if (!newInstance.getReturnType().isAssignableFrom(targetClass)) {
-                throw new IllegalArgumentException("incompatible return type");
-            }
-            final Constructor constructor;
-            try {
-                constructor = targetClass.getDeclaredConstructor(newInstance.getParameterTypes());
-            } catch (NoSuchMethodException e) {
-                throw new IllegalArgumentException("interface does not match any known constructor");
-            }
+		protected ClassLoader getDefaultClassLoader() {
+			return targetClass.getClassLoader();
+		}
 
-            ClassEmitter ce = new ClassEmitter(v);
-            ce.begin_class(Constants.V1_8,
-                           Constants.ACC_PUBLIC,
-                           getClassName(),
-                           CONSTRUCTOR_DELEGATE,
-                           new Type[]{ Type.getType(iface) },
-                           Constants.SOURCE_FILE);
-            Type declaring = Type.getType(constructor.getDeclaringClass());
-            EmitUtils.null_constructor(ce);
-            CodeEmitter e = ce.begin_method(Constants.ACC_PUBLIC,
-                                            ReflectUtils.getSignature(newInstance),
-                                            ReflectUtils.getExceptionTypes(newInstance));
-            e.new_instance(declaring);
-            e.dup();
-            e.load_args();
-            e.invoke_constructor(declaring, ReflectUtils.getSignature(constructor));
-            e.return_value();
-            e.end_method();
-            ce.end_class();
-        }
+		protected ProtectionDomain getProtectionDomain() {
+			return ReflectUtils.getProtectionDomain(targetClass);
+		}
 
-        protected Object firstInstance(Class type) {
-            return ReflectUtils.newInstance(type);
-        }
+		public void generateClass(ClassVisitor v) {
+			setNamePrefix(targetClass.getName());
 
-        protected Object nextInstance(Object instance) {
-            return instance;
-        }
-    }
+			final Method newInstance = ReflectUtils.findNewInstance(iface);
+			if (!newInstance.getReturnType().isAssignableFrom(targetClass)) {
+				throw new IllegalArgumentException("incompatible return type");
+			}
+			final Constructor constructor;
+			try {
+				constructor = targetClass.getDeclaredConstructor(newInstance.getParameterTypes());
+			}
+			catch (NoSuchMethodException e) {
+				throw new IllegalArgumentException("interface does not match any known constructor");
+			}
+
+			ClassEmitter ce = new ClassEmitter(v);
+			ce.begin_class(Constants.V1_8,
+					Constants.ACC_PUBLIC,
+					getClassName(),
+					CONSTRUCTOR_DELEGATE,
+					new Type[] {Type.getType(iface)},
+					Constants.SOURCE_FILE);
+			Type declaring = Type.getType(constructor.getDeclaringClass());
+			EmitUtils.null_constructor(ce);
+			CodeEmitter e = ce.begin_method(Constants.ACC_PUBLIC,
+					ReflectUtils.getSignature(newInstance),
+					ReflectUtils.getExceptionTypes(newInstance));
+			e.new_instance(declaring);
+			e.dup();
+			e.load_args();
+			e.invoke_constructor(declaring, ReflectUtils.getSignature(constructor));
+			e.return_value();
+			e.end_method();
+			ce.end_class();
+		}
+
+		protected Object firstInstance(Class type) {
+			return ReflectUtils.newInstance(type);
+		}
+
+		protected Object nextInstance(Object instance) {
+			return instance;
+		}
+	}
 }

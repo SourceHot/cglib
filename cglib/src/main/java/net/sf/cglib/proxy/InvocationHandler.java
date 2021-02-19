@@ -25,11 +25,10 @@ import java.lang.reflect.Method;
  * @version $Id: InvocationHandler.java,v 1.3 2004/06/24 21:15:20 herbyderby Exp $
  */
 public interface InvocationHandler
-extends Callback
-{
-    /**
-     * @see java.lang.reflect.InvocationHandler#invoke(java.lang.Object, java.lang.reflect.Method, java.lang.Object)
-     */
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable;
+		extends Callback {
+	/**
+	 * @see java.lang.reflect.InvocationHandler#invoke(java.lang.Object, java.lang.reflect.Method, java.lang.Object)
+	 */
+	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable;
 
 }

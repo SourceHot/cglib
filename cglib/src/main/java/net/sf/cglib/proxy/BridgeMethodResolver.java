@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+
 import net.sf.cglib.core.Constants;
 import net.sf.cglib.core.Signature;
 import org.objectweb.asm.ClassReader;
@@ -41,86 +42,91 @@ import org.objectweb.asm.Opcodes;
  */
 class BridgeMethodResolver {
 
-    private final Map/* <Class, Set<Signature> */declToBridge;
-    private final ClassLoader classLoader;
+	private final Map/* <Class, Set<Signature> */declToBridge;
 
-    public BridgeMethodResolver(Map declToBridge, ClassLoader classLoader) {
-        this.declToBridge = declToBridge;
-        this.classLoader = classLoader;
-    }
+	private final ClassLoader classLoader;
 
-    /**
-     * Finds all bridge methods that are being called with invokespecial &
-     * returns them.
-     */
-    public Map/*<Signature, Signature>*/resolveAll() {
-        Map resolved = new HashMap();
-        for (Iterator entryIter = declToBridge.entrySet().iterator(); entryIter.hasNext(); ) {
-            Map.Entry entry = (Map.Entry) entryIter.next();
-            Class owner = (Class) entry.getKey();
-            Set bridges = (Set) entry.getValue();
-            try {
-                InputStream is = classLoader.getResourceAsStream(owner.getName().replace('.', '/') + ".class");
-                if (is == null) {
-                    return resolved;
-                }
-                try {
-                    new ClassReader(is)
-                            .accept(new BridgedFinder(bridges, resolved),
-                                    ClassReader.SKIP_FRAMES | ClassReader.SKIP_DEBUG);
-                } finally {
-                    is.close();
-                }
-            } catch (IOException ignored) {}
-        }
-        return resolved;
-    }
+	public BridgeMethodResolver(Map declToBridge, ClassLoader classLoader) {
+		this.declToBridge = declToBridge;
+		this.classLoader = classLoader;
+	}
 
-    private static class BridgedFinder extends ClassVisitor {
-        private Map/*<Signature, Signature>*/ resolved;
-        private Set/*<Signature>*/ eligibleMethods;
-        
-        private Signature currentMethod = null;
+	/**
+	 * Finds all bridge methods that are being called with invokespecial &
+	 * returns them.
+	 */
+	public Map/*<Signature, Signature>*/resolveAll() {
+		Map resolved = new HashMap();
+		for (Iterator entryIter = declToBridge.entrySet().iterator(); entryIter.hasNext(); ) {
+			Map.Entry entry = (Map.Entry) entryIter.next();
+			Class owner = (Class) entry.getKey();
+			Set bridges = (Set) entry.getValue();
+			try {
+				InputStream is = classLoader.getResourceAsStream(owner.getName().replace('.', '/') + ".class");
+				if (is == null) {
+					return resolved;
+				}
+				try {
+					new ClassReader(is)
+							.accept(new BridgedFinder(bridges, resolved),
+									ClassReader.SKIP_FRAMES | ClassReader.SKIP_DEBUG);
+				}
+				finally {
+					is.close();
+				}
+			}
+			catch (IOException ignored) {}
+		}
+		return resolved;
+	}
 
-        BridgedFinder(Set eligibleMethods, Map resolved) {
-            super(Constants.ASM_API);
-            this.resolved = resolved;
-            this.eligibleMethods = eligibleMethods;
-        }
+	private static class BridgedFinder extends ClassVisitor {
+		private Map/*<Signature, Signature>*/ resolved;
 
-        public void visit(int version, int access, String name,
-                String signature, String superName, String[] interfaces) {
-        }
+		private Set/*<Signature>*/ eligibleMethods;
 
-        public MethodVisitor visitMethod(int access, String name, String desc,
-                String signature, String[] exceptions) {
-            Signature sig = new Signature(name, desc);
-            if (eligibleMethods.remove(sig)) {
-                currentMethod = sig;
-                return new MethodVisitor(Constants.ASM_API) {
-                    public void visitMethodInsn(
-                            int opcode, String owner, String name, String desc, boolean itf) {
-                        if ((opcode == Opcodes.INVOKESPECIAL
-                                        || (itf && opcode == Opcodes.INVOKEINTERFACE))
-                                && currentMethod != null) {
-                            Signature target = new Signature(name, desc);
-                            // If the target signature is the same as the current,
-                            // we shouldn't change our bridge becaues invokespecial
-                            // is the only way to make progress (otherwise we'll
-                            // get infinite recursion).  This would typically
-                            // only happen when a bridge method is created to widen
-                            // the visibility of a superclass' method.
-                            if (!target.equals(currentMethod)) {
-                                resolved.put(currentMethod, target);
-                            }
-                            currentMethod = null;
-                        }
-                    }
-                };
-            } else {
-                return null;
-            }
-        }
-    }
+		private Signature currentMethod = null;
+
+		BridgedFinder(Set eligibleMethods, Map resolved) {
+			super(Constants.ASM_API);
+			this.resolved = resolved;
+			this.eligibleMethods = eligibleMethods;
+		}
+
+		public void visit(int version, int access, String name,
+				String signature, String superName, String[] interfaces) {
+		}
+
+		public MethodVisitor visitMethod(int access, String name, String desc,
+				String signature, String[] exceptions) {
+			Signature sig = new Signature(name, desc);
+			if (eligibleMethods.remove(sig)) {
+				currentMethod = sig;
+				return new MethodVisitor(Constants.ASM_API) {
+					public void visitMethodInsn(
+							int opcode, String owner, String name, String desc, boolean itf) {
+						if ((opcode == Opcodes.INVOKESPECIAL
+								|| (itf && opcode == Opcodes.INVOKEINTERFACE))
+								&& currentMethod != null) {
+							Signature target = new Signature(name, desc);
+							// If the target signature is the same as the current,
+							// we shouldn't change our bridge becaues invokespecial
+							// is the only way to make progress (otherwise we'll
+							// get infinite recursion).  This would typically
+							// only happen when a bridge method is created to widen
+							// the visibility of a superclass' method.
+							if (!target.equals(currentMethod)) {
+								resolved.put(currentMethod, target);
+							}
+							currentMethod = null;
+						}
+					}
+				};
+			}
+			else {
+				return null;
+			}
+		}
+	}
 
 }

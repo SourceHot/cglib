@@ -24,5 +24,5 @@ import org.objectweb.asm.Type;
  * @see KeyFactory#CLASS_BY_NAME
  */
 public interface Customizer extends KeyFactoryCustomizer {
-    void customize(CodeEmitter e, Type type);
+	void customize(CodeEmitter e, Type type);
 }

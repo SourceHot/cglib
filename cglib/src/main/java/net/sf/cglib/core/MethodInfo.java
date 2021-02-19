@@ -15,33 +15,35 @@
  */
 package net.sf.cglib.core;
 
-import org.objectweb.asm.Attribute;
 import org.objectweb.asm.Type;
 
 abstract public class MethodInfo {
 
-    protected MethodInfo() {
-    }
-    
-    abstract public ClassInfo getClassInfo();
-    abstract public int getModifiers();
-    abstract public Signature getSignature();
-    abstract public Type[] getExceptionTypes();
+	protected MethodInfo() {
+	}
 
-    public boolean equals(Object o) {
-        if (o == null)
-            return false;
-        if (!(o instanceof MethodInfo))
-            return false;
-        return getSignature().equals(((MethodInfo)o).getSignature());
-    }
+	abstract public ClassInfo getClassInfo();
 
-    public int hashCode() {
-        return getSignature().hashCode();
-    }
+	abstract public int getModifiers();
 
-    public String toString() {
-        // TODO: include modifiers, exceptions
-        return getSignature().toString();
-    }
+	abstract public Signature getSignature();
+
+	abstract public Type[] getExceptionTypes();
+
+	public boolean equals(Object o) {
+		if (o == null)
+			return false;
+		if (!(o instanceof MethodInfo))
+			return false;
+		return getSignature().equals(((MethodInfo) o).getSignature());
+	}
+
+	public int hashCode() {
+		return getSignature().hashCode();
+	}
+
+	public String toString() {
+		// TODO: include modifiers, exceptions
+		return getSignature().toString();
+	}
 }

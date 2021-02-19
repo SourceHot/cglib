@@ -23,14 +23,14 @@ import net.sf.cglib.core.CodeGenerationException;
  * @author Juozas Baliuka
  */
 public class UndeclaredThrowableException extends CodeGenerationException {
-    /**
-     * Creates a new instance of <code>UndeclaredThrowableException</code> without detail message.
-     */
-    public UndeclaredThrowableException(Throwable t) {
-        super(t);
-    }
-    
-    public Throwable getUndeclaredThrowable() {
-        return getCause();
-    }
+	/**
+	 * Creates a new instance of <code>UndeclaredThrowableException</code> without detail message.
+	 */
+	public UndeclaredThrowableException(Throwable t) {
+		super(t);
+	}
+
+	public Throwable getUndeclaredThrowable() {
+		return getCause();
+	}
 }

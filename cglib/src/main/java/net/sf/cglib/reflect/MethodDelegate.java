@@ -15,10 +15,19 @@
  */
 package net.sf.cglib.reflect;
 
-import java.lang.reflect.*;
+import java.lang.reflect.Method;
 import java.security.ProtectionDomain;
-import net.sf.cglib.*;
-import net.sf.cglib.core.*;
+
+import net.sf.cglib.core.AbstractClassGenerator;
+import net.sf.cglib.core.ClassEmitter;
+import net.sf.cglib.core.CodeEmitter;
+import net.sf.cglib.core.Constants;
+import net.sf.cglib.core.EmitUtils;
+import net.sf.cglib.core.KeyFactory;
+import net.sf.cglib.core.MethodInfo;
+import net.sf.cglib.core.ReflectUtils;
+import net.sf.cglib.core.Signature;
+import net.sf.cglib.core.TypeUtils;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Type;
 
@@ -106,163 +115,169 @@ import org.objectweb.asm.Type;
  * @version $Id: MethodDelegate.java,v 1.25 2006/03/05 02:43:19 herbyderby Exp $
  */
 abstract public class MethodDelegate {
-    private static final MethodDelegateKey KEY_FACTORY =
-      (MethodDelegateKey)KeyFactory.create(MethodDelegateKey.class, KeyFactory.CLASS_BY_NAME);
+	private static final MethodDelegateKey KEY_FACTORY =
+			(MethodDelegateKey) KeyFactory.create(MethodDelegateKey.class, KeyFactory.CLASS_BY_NAME);
 
-    protected Object target;
-    protected String eqMethod;
+	protected Object target;
 
-    interface MethodDelegateKey {
-        Object newInstance(Class delegateClass, String methodName, Class iface);
-    }
+	protected String eqMethod;
 
-    public static MethodDelegate createStatic(Class targetClass, String methodName, Class iface) {
-        Generator gen = new Generator();
-        gen.setTargetClass(targetClass);
-        gen.setMethodName(methodName);
-        gen.setInterface(iface);
-        return gen.create();
-    }
+	public static MethodDelegate createStatic(Class targetClass, String methodName, Class iface) {
+		Generator gen = new Generator();
+		gen.setTargetClass(targetClass);
+		gen.setMethodName(methodName);
+		gen.setInterface(iface);
+		return gen.create();
+	}
 
-    public static MethodDelegate create(Object target, String methodName, Class iface) {
-        Generator gen = new Generator();
-        gen.setTarget(target);
-        gen.setMethodName(methodName);
-        gen.setInterface(iface);
-        return gen.create();
-    }
+	public static MethodDelegate create(Object target, String methodName, Class iface) {
+		Generator gen = new Generator();
+		gen.setTarget(target);
+		gen.setMethodName(methodName);
+		gen.setInterface(iface);
+		return gen.create();
+	}
 
-    public boolean equals(Object obj) {
-        MethodDelegate other = (MethodDelegate)obj;
-        return (other != null && target == other.target) && eqMethod.equals(other.eqMethod);
-    }
+	public boolean equals(Object obj) {
+		MethodDelegate other = (MethodDelegate) obj;
+		return (other != null && target == other.target) && eqMethod.equals(other.eqMethod);
+	}
 
-    public int hashCode() {
-        return target.hashCode() ^ eqMethod.hashCode();
-    }
+	public int hashCode() {
+		return target.hashCode() ^ eqMethod.hashCode();
+	}
 
-    public Object getTarget() {
-        return target;
-    }
+	public Object getTarget() {
+		return target;
+	}
 
-    abstract public MethodDelegate newInstance(Object target);
+	abstract public MethodDelegate newInstance(Object target);
 
-    public static class Generator extends AbstractClassGenerator {
-        private static final Source SOURCE = new Source(MethodDelegate.class.getName());
-        private static final Type METHOD_DELEGATE =
-          TypeUtils.parseType("net.sf.cglib.reflect.MethodDelegate");
-        private static final Signature NEW_INSTANCE =
-          new Signature("newInstance", METHOD_DELEGATE, new Type[]{ Constants.TYPE_OBJECT });
+	interface MethodDelegateKey {
+		Object newInstance(Class delegateClass, String methodName, Class iface);
+	}
 
-        private Object target;
-        private Class targetClass;
-        private String methodName;
-        private Class iface;
+	public static class Generator extends AbstractClassGenerator {
+		private static final Source SOURCE = new Source(MethodDelegate.class.getName());
 
-        public Generator() {
-            super(SOURCE);
-        }
+		private static final Type METHOD_DELEGATE =
+				TypeUtils.parseType("net.sf.cglib.reflect.MethodDelegate");
 
-        public void setTarget(Object target) {
-            this.target = target;
-            this.targetClass = target.getClass();
-        }
+		private static final Signature NEW_INSTANCE =
+				new Signature("newInstance", METHOD_DELEGATE, new Type[] {Constants.TYPE_OBJECT});
 
-        public void setTargetClass(Class targetClass) {
-            this.targetClass = targetClass;
-        }
+		private Object target;
 
-        public void setMethodName(String methodName) {
-            this.methodName = methodName;
-        }
+		private Class targetClass;
 
-        public void setInterface(Class iface) {
-            this.iface = iface;
-        }
+		private String methodName;
 
-        protected ClassLoader getDefaultClassLoader() {
-            return targetClass.getClassLoader();
-        }
+		private Class iface;
 
-        protected ProtectionDomain getProtectionDomain() {
-        	return ReflectUtils.getProtectionDomain(targetClass);
-        }
+		public Generator() {
+			super(SOURCE);
+		}
 
-        public MethodDelegate create() {
-            setNamePrefix(targetClass.getName());
-            Object key = KEY_FACTORY.newInstance(targetClass, methodName, iface);
-            return (MethodDelegate)super.create(key);
-        }
+		public void setTarget(Object target) {
+			this.target = target;
+			this.targetClass = target.getClass();
+		}
 
-        protected Object firstInstance(Class type) {
-            return ((MethodDelegate)ReflectUtils.newInstance(type)).newInstance(target);
-        }
+		public void setTargetClass(Class targetClass) {
+			this.targetClass = targetClass;
+		}
 
-        protected Object nextInstance(Object instance) {
-            return ((MethodDelegate)instance).newInstance(target);
-        }
+		public void setMethodName(String methodName) {
+			this.methodName = methodName;
+		}
 
-        public void generateClass(ClassVisitor v) throws NoSuchMethodException {
-            Method proxy = ReflectUtils.findInterfaceMethod(iface);
-            final Method method = targetClass.getMethod(methodName, proxy.getParameterTypes());
-            if (!proxy.getReturnType().isAssignableFrom(method.getReturnType())) {
-                throw new IllegalArgumentException("incompatible return types");
-            }
+		public void setInterface(Class iface) {
+			this.iface = iface;
+		}
 
-            MethodInfo methodInfo = ReflectUtils.getMethodInfo(method);
+		protected ClassLoader getDefaultClassLoader() {
+			return targetClass.getClassLoader();
+		}
 
-            boolean isStatic = TypeUtils.isStatic(methodInfo.getModifiers());
-            if ((target == null) ^ isStatic) {
-                throw new IllegalArgumentException("Static method " + (isStatic ? "not " : "") + "expected");
-            }
+		protected ProtectionDomain getProtectionDomain() {
+			return ReflectUtils.getProtectionDomain(targetClass);
+		}
 
-            ClassEmitter ce = new ClassEmitter(v);
-            CodeEmitter e;
-            ce.begin_class(Constants.V1_8,
-                           Constants.ACC_PUBLIC,
-                           getClassName(),
-                           METHOD_DELEGATE,
-                           new Type[]{ Type.getType(iface) },
-                           Constants.SOURCE_FILE);
-            ce.declare_field(Constants.PRIVATE_FINAL_STATIC, "eqMethod", Constants.TYPE_STRING, null);
-            EmitUtils.null_constructor(ce);
+		public MethodDelegate create() {
+			setNamePrefix(targetClass.getName());
+			Object key = KEY_FACTORY.newInstance(targetClass, methodName, iface);
+			return (MethodDelegate) super.create(key);
+		}
 
-            // generate proxied method
-            MethodInfo proxied = ReflectUtils.getMethodInfo(iface.getDeclaredMethods()[0]);
-            int modifiers = Constants.ACC_PUBLIC;
-            if ((proxied.getModifiers() & Constants.ACC_VARARGS) == Constants.ACC_VARARGS) {
-                modifiers |= Constants.ACC_VARARGS;
-            }
-            e = EmitUtils.begin_method(ce, proxied, modifiers);
-            e.load_this();
-            e.super_getfield("target", Constants.TYPE_OBJECT);
-            e.checkcast(methodInfo.getClassInfo().getType());
-            e.load_args();
-            e.invoke(methodInfo);
-            e.return_value();
-            e.end_method();
+		protected Object firstInstance(Class type) {
+			return ((MethodDelegate) ReflectUtils.newInstance(type)).newInstance(target);
+		}
 
-            // newInstance
-            e = ce.begin_method(Constants.ACC_PUBLIC, NEW_INSTANCE, null);
-            e.new_instance_this();
-            e.dup();
-            e.dup2();
-            e.invoke_constructor_this();
-            e.getfield("eqMethod");
-            e.super_putfield("eqMethod", Constants.TYPE_STRING);
-            e.load_arg(0);
-            e.super_putfield("target", Constants.TYPE_OBJECT);
-            e.return_value();
-            e.end_method();
+		protected Object nextInstance(Object instance) {
+			return ((MethodDelegate) instance).newInstance(target);
+		}
 
-            // static initializer
-            e = ce.begin_static();
-            e.push(methodInfo.getSignature().toString());
-            e.putfield("eqMethod");
-            e.return_value();
-            e.end_method();
+		public void generateClass(ClassVisitor v) throws NoSuchMethodException {
+			Method proxy = ReflectUtils.findInterfaceMethod(iface);
+			final Method method = targetClass.getMethod(methodName, proxy.getParameterTypes());
+			if (!proxy.getReturnType().isAssignableFrom(method.getReturnType())) {
+				throw new IllegalArgumentException("incompatible return types");
+			}
 
-            ce.end_class();
-        }
-    }
+			MethodInfo methodInfo = ReflectUtils.getMethodInfo(method);
+
+			boolean isStatic = TypeUtils.isStatic(methodInfo.getModifiers());
+			if ((target == null) ^ isStatic) {
+				throw new IllegalArgumentException("Static method " + (isStatic ? "not " : "") + "expected");
+			}
+
+			ClassEmitter ce = new ClassEmitter(v);
+			CodeEmitter e;
+			ce.begin_class(Constants.V1_8,
+					Constants.ACC_PUBLIC,
+					getClassName(),
+					METHOD_DELEGATE,
+					new Type[] {Type.getType(iface)},
+					Constants.SOURCE_FILE);
+			ce.declare_field(Constants.PRIVATE_FINAL_STATIC, "eqMethod", Constants.TYPE_STRING, null);
+			EmitUtils.null_constructor(ce);
+
+			// generate proxied method
+			MethodInfo proxied = ReflectUtils.getMethodInfo(iface.getDeclaredMethods()[0]);
+			int modifiers = Constants.ACC_PUBLIC;
+			if ((proxied.getModifiers() & Constants.ACC_VARARGS) == Constants.ACC_VARARGS) {
+				modifiers |= Constants.ACC_VARARGS;
+			}
+			e = EmitUtils.begin_method(ce, proxied, modifiers);
+			e.load_this();
+			e.super_getfield("target", Constants.TYPE_OBJECT);
+			e.checkcast(methodInfo.getClassInfo().getType());
+			e.load_args();
+			e.invoke(methodInfo);
+			e.return_value();
+			e.end_method();
+
+			// newInstance
+			e = ce.begin_method(Constants.ACC_PUBLIC, NEW_INSTANCE, null);
+			e.new_instance_this();
+			e.dup();
+			e.dup2();
+			e.invoke_constructor_this();
+			e.getfield("eqMethod");
+			e.super_putfield("eqMethod", Constants.TYPE_STRING);
+			e.load_arg(0);
+			e.super_putfield("target", Constants.TYPE_OBJECT);
+			e.return_value();
+			e.end_method();
+
+			// static initializer
+			e = ce.begin_static();
+			e.push(methodInfo.getSignature().toString());
+			e.putfield("eqMethod");
+			e.return_value();
+			e.end_method();
+
+			ce.end_class();
+		}
+	}
 }

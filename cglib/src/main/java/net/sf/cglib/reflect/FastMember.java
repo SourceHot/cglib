@@ -17,49 +17,51 @@ package net.sf.cglib.reflect;
 
 import java.lang.reflect.Member;
 
-abstract public class FastMember
-{
-    protected FastClass fc;
-    protected Member member;
-    protected int index;
+abstract public class FastMember {
+	protected FastClass fc;
 
-    protected FastMember(FastClass fc, Member member, int index) {
-        this.fc = fc;
-        this.member = member;
-        this.index = index;
-    }
+	protected Member member;
 
-    abstract public Class[] getParameterTypes();
-    abstract public Class[] getExceptionTypes();
+	protected int index;
 
-    public int getIndex() {
-        return index;
-    }
+	protected FastMember(FastClass fc, Member member, int index) {
+		this.fc = fc;
+		this.member = member;
+		this.index = index;
+	}
 
-    public String getName() {
-        return member.getName();
-    }
+	abstract public Class[] getParameterTypes();
 
-    public Class getDeclaringClass() {
-        return fc.getJavaClass();
-    }
+	abstract public Class[] getExceptionTypes();
 
-    public int getModifiers() {
-        return member.getModifiers();
-    }
+	public int getIndex() {
+		return index;
+	}
 
-    public String toString() {
-        return member.toString();
-    }
+	public String getName() {
+		return member.getName();
+	}
 
-    public int hashCode() {
-        return member.hashCode();
-    }
+	public Class getDeclaringClass() {
+		return fc.getJavaClass();
+	}
 
-    public boolean equals(Object o) {
-        if (o == null || !(o instanceof FastMember)) {
-            return false;
-        }
-        return member.equals(((FastMember)o).member);
-    }
+	public int getModifiers() {
+		return member.getModifiers();
+	}
+
+	public String toString() {
+		return member.toString();
+	}
+
+	public int hashCode() {
+		return member.hashCode();
+	}
+
+	public boolean equals(Object o) {
+		if (o == null || !(o instanceof FastMember)) {
+			return false;
+		}
+		return member.equals(((FastMember) o).member);
+	}
 }
